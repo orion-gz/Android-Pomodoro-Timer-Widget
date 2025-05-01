@@ -49,7 +49,7 @@ dependencies {
 
 // --- JitPack 배포를 위한 Publishing 설정 ---
 group = "com.github.orion-gz"
-version = "1.0.3"
+version = "1.0.4"
 
 publishing {
     publications {

@@ -218,15 +218,18 @@ public class TimerView extends View {
                     else
                         vibrator.vibrate(5);
                 }*/
+                    if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
                     handleTouch(x, y);
                     return true;
                 case MotionEvent.ACTION_UP:
+                    if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
                     lastAngle = -1;
                     return true;
             }
 
             return super.onTouchEvent(event);
-        } else return true;
+        }
+        return super.onTouchEvent(event);
     }
 
     /*
