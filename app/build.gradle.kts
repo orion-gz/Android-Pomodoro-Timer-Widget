@@ -32,7 +32,7 @@ android {
 }
 
 dependencies {
-    implementation(files("../PomodoroTimer/build/outputs/aar/PomodoroTimer-release.aar"))
+    implementation(files("../PomodoroTimer-release.aar"))
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)
