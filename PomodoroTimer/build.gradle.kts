@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.library)
+    alias(libs.plugins.maven.publish)
 }
 
 android {
@@ -35,4 +36,22 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            register<MavenPublication>("release") {
+                from(components["release"])
+                groupId = "com.github.orion-gz"
+                artifactId = "Pomodoro-Timer-Widget"
+                version = "1.0.1"
+
+                pom {
+                    name.set("PomodoroTimer")
+                    description.set("This is an android Pomodoro Timer custom view widget with java")
+                }
+            }
+        }
+    }
 }
