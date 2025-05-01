@@ -1,6 +1,6 @@
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.maven.publish)
+    id("maven-publish")
 }
 
 android {
@@ -27,6 +27,15 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
+    publishing {
+        singleVariant("release") {
+            // 소스 코드를 함께 게시하려면 (선택 사항, 권장)
+            withSourcesJar()
+            // Javadoc을 함께 게시하려면 (선택 사항, 권장)
+            withJavadocJar()
+        }
+    }
 }
 
 dependencies {
@@ -38,18 +47,38 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
 }
 
-afterEvaluate {
-    publishing {
-        publications {
-            register<MavenPublication>("release") {
-                from(components["release"])
-                groupId = "com.github.orion-gz"
-                artifactId = "Pomodoro-Timer-Widget"
-                version = "1.0.1"
+// --- JitPack 배포를 위한 Publishing 설정 ---
+group = "com.github.orion-gz"
+version = "1.0.2"
 
-                pom {
-                    name.set("PomodoroTimer")
-                    description.set("This is an android Pomodoro Timer custom view widget with java")
+publishing {
+    publications {
+        register<MavenPublication>("release") {
+            afterEvaluate {
+                from(components["release"])
+            }
+
+            groupId = project.group.toString()
+            artifactId = "Pomodoro-Timer-Widget"
+            version = project.version.toString()
+
+            pom {
+                name.set("PomodoroTimer")
+                description.set("This is an android Pomodoro Timer custom view widget with java")
+                url.set("https://github.com/orion-gz/Pomodoro-Timer-Widget")
+
+                developers {
+                    developer {
+                        id.set("orion-gz")
+                        name.set("JungWoo Lee")
+                        email.set("asdfg60842@gmail.com")
+                    }
+                }
+
+                scm {
+                    connection.set("scm:git:git://github.com/orion-gz/Pomodoro-Timer-Widget.git")
+                    developerConnection.set("scm:git:ssh://github.com/orion-gz/Pomodoro-Timer-Widget.git")
+                    url.set("https://github.com/orion-gz/Pomodoro-Timer-Widget/")
                 }
             }
         }
