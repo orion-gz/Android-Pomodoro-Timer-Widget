@@ -32,7 +32,7 @@ android {
 }
 
 dependencies {
-    implementation("com.github.orion-gz:Pomodoro-Timer-Widget:1.0.3")
+    implementation("com.github.orion-gz:Pomodoro-Timer-Widget:1.0.5")
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)

@@ -30,9 +30,7 @@ android {
 
     publishing {
         singleVariant("release") {
-            // 소스 코드를 함께 게시하려면 (선택 사항, 권장)
             withSourcesJar()
-            // Javadoc을 함께 게시하려면 (선택 사항, 권장)
             withJavadocJar()
         }
     }
@@ -47,9 +45,8 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
 }
 
-// --- JitPack 배포를 위한 Publishing 설정 ---
 group = "com.github.orion-gz"
-version = "1.0.4"
+version = "1.0.5"
 
 publishing {
     publications {
