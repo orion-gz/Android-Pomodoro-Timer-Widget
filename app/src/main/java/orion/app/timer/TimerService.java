@@ -61,7 +61,6 @@ public class TimerService extends Service {
     private boolean isMuted = false;
 
 
-
     @Override
     public void onCreate() {
         super.onCreate();
@@ -89,12 +88,10 @@ public class TimerService extends Service {
                 if (duration > 0 && !isTimerRunning) {
                     showTempStopNotification(this, "Timer is running");
                     startTimer(duration);
-                }
-                else if (isTimerRunning) {
+                } else if (isTimerRunning) {
                     Log.w(TAG, "Timer is already running");
                     showTempStopNotification(this, "Timer is already running");
-                }
-                else {
+                } else {
                     Log.w(TAG, "Invalid duration: " + duration);
                     stopSelf();
                 }
@@ -160,8 +157,7 @@ public class TimerService extends Service {
             showTempStopNotification(this, "Timer is paused");
             sendTimerUpdateBroadcast(remainingMillis);
             Log.d(TAG, "Paused. Remaining millis: " + remainingMillis);
-        }
-        else {
+        } else {
             Log.d(TAG, "Timer not running or already paused");
         }
     }
@@ -179,8 +175,7 @@ public class TimerService extends Service {
             startPeriodicUpdates();
             updateNotification(formatMillis(remainingMillis));
             sendTimerUpdateBroadcast(remainingMillis);
-        }
-        else
+        } else
             Log.w(TAG, "Timer not running or not paused");
     }
 
@@ -190,8 +185,7 @@ public class TimerService extends Service {
             showTempStopNotification(this, "Timer is stopped");
             Intent intent = new Intent(BROADCAST_ACTION_TIMER_STOP);
             LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-        }
-        else showTempStopNotification(this, "Timer is already stopped");
+        } else showTempStopNotification(this, "Timer is already stopped");
 
         initTimerState();
 
@@ -215,8 +209,7 @@ public class TimerService extends Service {
                 if (remainingMillis <= 0) {
                     Log.d(TAG, "Handler check: Time is up or passed");
                     stopTimer();
-                }
-                else {
+                } else {
                     updateNotification(formatMillis(remainingMillis));
                     sendTimerUpdateBroadcast(remainingMillis);
                     handler.postDelayed(this, 1000);
@@ -330,8 +323,7 @@ public class TimerService extends Service {
             builder
                     .setSound(null)
                     .setVibrate(null);
-        }
-        else {
+        } else {
             Log.d("TimerService", "Notification Sound & Vibrate On");
             builder
                     .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
@@ -359,7 +351,8 @@ public class TimerService extends Service {
         seconds %= 60;
         minutes %= 60;
 
-        if (hours > 0) return String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds);
+        if (hours > 0)
+            return String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds);
         else return String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds);
     }
 

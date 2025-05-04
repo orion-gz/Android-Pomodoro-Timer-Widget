@@ -30,6 +30,11 @@ public class TimerView extends View {
     // RectF Objects
     private RectF circleBounds, graduationCircleBounds, knobCircleBounds, handBounds, handCircleBounds;
 
+    // Color Attr
+    private int circleColor;
+    private int knobColor;
+    private int handColor;
+
     // Center X, Y Coordinate
     private float centerX, centerY;
     // Angle of Arc - Default is 25 minutes (25 / 60 = 0.416777)
@@ -78,12 +83,32 @@ public class TimerView extends View {
     }
     /** Listener **/
 
+    /** Setter for Attr **/
+    public void setCirlceColor(int color) {
+        circleColor = color;
+        invalidate();
+        requestLayout();
+    }
+
+    public void setKnobColor(int color) {
+        knobColor = color;
+        invalidate();
+        requestLayout();
+    }
+
+    public void setHandColor(int color) {
+        handColor = color;
+        invalidate();
+        requestLayout();
+    }
+    /** Setter for Attr **/
+
     // Initialize Objects (Attributes, Paint, RectF)
     private void init(AttributeSet attrs) {
         TypedArray attr = getContext().obtainStyledAttributes(attrs, R.styleable.TimerView);
-        int circleColor = attr.getColor(R.styleable.TimerView_circle_color, Color.parseColor("#EF5350"));
-        int knobColor = attr.getColor(R.styleable.TimerView_knob_color, Color.parseColor("#E57373"));
-        int handColor = attr.getColor(R.styleable.TimerView_hand_color, Color.parseColor("#F44336"));
+        circleColor = attr.getColor(R.styleable.TimerView_circle_color, Color.parseColor("#EF5350"));
+        knobColor = attr.getColor(R.styleable.TimerView_knob_color, Color.parseColor("#E57373"));
+        handColor = attr.getColor(R.styleable.TimerView_hand_color, Color.parseColor("#F44336"));
 
         redCircle = new Paint();
         redCircle.setColor(circleColor);
