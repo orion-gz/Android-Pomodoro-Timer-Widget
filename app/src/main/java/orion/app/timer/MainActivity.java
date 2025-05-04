@@ -3,6 +3,7 @@ package orion.app.timer;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -47,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
+        timerView.setKnobColor(Color.parseColor("#dd3333"));
         init();
         updateTimerView();
         setupTimerControl();

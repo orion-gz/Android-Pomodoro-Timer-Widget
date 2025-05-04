@@ -11,6 +11,7 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 
+import androidx.annotation.ColorInt;
 import androidx.annotation.Nullable;
 
 
@@ -84,22 +85,25 @@ public class TimerView extends View {
     /** Listener **/
 
     /** Setter for Attr **/
-    public void setCirlceColor(int color) {
-        circleColor = color;
+    public void setCirlceColor(@ColorInt int color) {
+        this.circleColor = color;
+        if (redCircle != null)
+            redCircle.setColor(color);
         invalidate();
-        requestLayout();
     }
 
-    public void setKnobColor(int color) {
-        knobColor = color;
+    public void setKnobColor(@ColorInt int color) {
+        this.knobColor = color;
+        if (knobCircle != null)
+            knobCircle.setColor(color);
         invalidate();
-        requestLayout();
     }
 
-    public void setHandColor(int color) {
-        handColor = color;
+    public void setHandColor(@ColorInt int color) {
+        this.handColor = color;
+        if (hand != null)
+            hand.setColor(color);
         invalidate();
-        requestLayout();
     }
     /** Setter for Attr **/
 
