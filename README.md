@@ -92,11 +92,9 @@ app:hand_color=""
 #### Recommend Color Pattern
 Determine the minute hand and inner circle based on the **OuterCircle color**
 
-Set OutCircle Color as `int color = getResources().getColor(R.color.~~);`
-
-For Hand Color `ColorUtils.blendARGB(color, Color.BLACK, 0.2F);`
-
-For InnerCircle Color `ColorUtils.blendARGB(color, Color.WHITE, 0.2F);`
+Set OutCircle Color as `int color = getResources().getColor(R.color.~~);` \
+For Hand Color `ColorUtils.blendARGB(color, Color.BLACK, 0.2F);` \
+For InnerCircle Color `ColorUtils.blendARGB(color, Color.WHITE, 0.2F);` \
 
 
 **Example Code**
@@ -118,11 +116,11 @@ timerView.setKnobColor(brightColor);
 <details>
 <summary>preview</summary>
 
-![color1](img/color1.png)
-
-![color2](img/color2.png)
-
-![color3](img/color3.png)
+<p align="center">
+	<img src="img/color1.png" algin="center" width="32%"/>
+	<img src="img/color2.png" algin="center" width="32%"/>
+	<img src="img/color3.png" algin="center" width="32%"/>
+</p>
 
 </details>
 
@@ -231,15 +229,15 @@ public void setHandColor(@ColorInt int color) {
 ## DEMO APP
 ### ScreenShot
 
-![main](img/main.png)
-
-![start_session](img/start_session.png)
-
+<p align="center">
+	<img src="img/main.png" algin="center" width="40%"/>
+	<img src="img/start_session.png" algin="center" width="40%"/>
+</p>
 
 ### DEMO Gif
 
-![demo1](img/demo1.gif)
-
-![demo2](img/demo2.gif)
-
-![demo3](img/demo3.gif)
+<p align="center">
+	<img src="img/demo1.gif" algin="center" width="32%"/>
+	<img src="img/demo2.gif" algin="center" width="32%"/>
+	<img src="img/demo3.gif" algin="center" width="32%"/>
+</p>
