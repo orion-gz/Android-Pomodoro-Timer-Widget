@@ -7,8 +7,10 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.media.AudioAttributes;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -23,32 +25,54 @@ import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.util.Locale;
-import java.util.Timer;
 
 public class TimerService extends Service {
+    // Tag for Logging
     private static final String TAG = "TimerService";
 
     // ACTION STATE
     public static final String ACTION_START = "ACTION_START";
     public static final String ACTION_PAUSE = "ACTION_PAUSE";
     public static final String ACTION_RESUME = "ACTION_RESUME";
+    public static final String ACTION_ADJUST_TIME = "ACTION_ADJUST_TIME";
     public static final String ACTION_STOP = "ACTION_STOP";
-    public static final String TIMER_TIME = "TIMER_TIME";
-
     public static final String ACTION_MUTE = "ACTION_MUTE";
     public static final String ACTION_UNMUTE = "ACTION_UNMUTE";
 
+    // Broadcast Actions
+    public static final String BROADCAST_ACTION_TIMER_STATE_CHANGED = "TIMER_STATE_CHANGED";
     public static final String BROADCAST_ACTION_TIMER_UPDATE = "TIMER_UPDATE";
     public static final String BROADCAST_ACTION_TIMER_STOP = "TIMER_STOP";
-    public static final String BROADCAST_EXTRA_REMAINING = "REMAINING";
 
-    // Notification
+    // Shared Preference Keys
+    public static final String PREFS_NAME = "TimerServiceState";
+    public static final String KEY_SELECTED_SUBJECT_ID = "selectedSubjectId";
+    public static final String KEY_DURATION_TIME = "durationTime";
+    public static final String KEY_REMAINING_TIME = "remainingTime";
+    public static final String KEY_START_TIME = "startTime";
+    public static final String KEY_IS_RUNNING = "isRunning";
+    public static final String KEY_IS_PAUSED = "isPaused";
+    public static final String KEY_IS_MUTED = "isMuted";
+
+    // Intent Extra Keys
+    public static final String BROADCAST_EXTRA_REMAINING_TIME = "REMAINING_TIME";
+    public static final String EXTRA_ADJUSTMENT_TIME = "EXTRA_ADJUSTMENT_TIME";
+    public static final String EXTRA_SHOW_TIMER_FRAGMENT = "EXTRA_SHOW_TIMER_FRAGMENT";
+
+    // Bundle Keys
+    public static final String BUNDLE_TIMER_TIME = "BUNLDE_TIMER_TIME";
+    public static final String BUNDLE_SUBJECT_NAME = "SUBJECT_NAME";
+    public static final String BUNDLE_SUBJECT_ID = "SUBJECT_ID";
+    public static final String BUNDLE_START_TIME = "START_TIME";
+
+    // Notification Channels and IDs
     private static final String CHANNEL_ID = "timer_channel";
-    private static final String FINISHED_CHANNEL_ID = "timer_finished_channel";
+    private static final String TEMP_CHANNEL_ID = "timer_temp_channel";
+    private static final String TEMP_MUTE_CHANNEL_ID = "timer_temp_muted_channel";
     private static final int NOTIFICATION_ID = 1;
-    private static final int FINISHED_NOTIFICATION_ID = 2;
+    private static final int TEMP_NOTIFICATION_ID = 2;
 
-    // Time
+    // Time Variables
     private Handler handler;
     private Runnable timerRunnable;
 
@@ -56,14 +80,31 @@ public class TimerService extends Service {
     private long durationMillis = 0L;
     private long remainingMillis = 0L;
 
+    // State Variables
     private boolean isTimerRunning = false;
     private boolean isPaused = false;
     private boolean isMuted = false;
+    private String startTime;
 
+    // Save Timer State to SharedPreference
+    // Using when restore timer state
+    private void saveStateToPrefs() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+
+        editor.putLong(KEY_DURATION_TIME, durationMillis / 1000L);
+        editor.putString(KEY_START_TIME, startTime);
+        editor.putBoolean(KEY_IS_RUNNING, isTimerRunning);
+        editor.putBoolean(KEY_IS_PAUSED, isPaused);
+        editor.putBoolean(KEY_IS_MUTED, isMuted);
+
+        editor.apply();
+    }
 
     @Override
     public void onCreate() {
         super.onCreate();
+
         Log.d(TAG, "onCreate");
         handler = new Handler(Looper.getMainLooper());
         createNotificationChannel();
@@ -84,38 +125,56 @@ public class TimerService extends Service {
 
         switch (action) {
             case ACTION_START:
-                long duration = intent.getLongExtra(TIMER_TIME, 0L);
+                Bundle bundle = intent.getExtras();
+                long duration = bundle.getLong(BUNDLE_TIMER_TIME);
                 if (duration > 0 && !isTimerRunning) {
-                    showTempStopNotification(this, "Timer is running");
+                    startTime = intent.getStringExtra(BUNDLE_START_TIME);
+
+                    showTempNotification(this, "Session Start");
                     startTimer(duration);
+                    saveStateToPrefs();
                 } else if (isTimerRunning) {
                     Log.w(TAG, "Timer is already running");
-                    showTempStopNotification(this, "Timer is already running");
+                    // showTempNotification(this, "Timer is already running");
                 } else {
                     Log.w(TAG, "Invalid duration: " + duration);
                     stopSelf();
                 }
                 break;
+            case ACTION_ADJUST_TIME:
+                long adjustDuration = intent.getLongExtra(EXTRA_ADJUSTMENT_TIME, 0L);
+                if (isTimerRunning && adjustDuration != 0) {
+                    adjustTimerTime(adjustDuration);
+                    saveStateToPrefs();
+                } else
+                    Log.w(TAG, "Cannot Adjust Time");
+                break;
             case ACTION_PAUSE:
                 pauseTimer();
+                saveStateToPrefs();
                 break;
             case ACTION_RESUME:
                 resumeTimer();
+                saveStateToPrefs();
                 break;
             case ACTION_STOP:
                 stopTimer();
+                saveStateToPrefs();
                 break;
             case ACTION_MUTE:
                 isMuted = true;
+                saveStateToPrefs();
                 break;
             case ACTION_UNMUTE:
                 isMuted = false;
+                saveStateToPrefs();
                 break;
         }
 
-        return START_NOT_STICKY;
+        return START_REDELIVER_INTENT;
     }
 
+    // Initialize Timer State
     private void initTimerState() {
         timerRunnable = null;
 
@@ -127,6 +186,7 @@ public class TimerService extends Service {
         durationMillis = 0;
     }
 
+    // Start Timer
     private void startTimer(long duration) {
         Log.d(TAG, "Starting timer for " + duration + " seconds");
         if (handler != null && timerRunnable != null)
@@ -143,6 +203,16 @@ public class TimerService extends Service {
         sendTimerUpdateBroadcast(durationMillis);
     }
 
+    // Adjust Timer Time
+    private void adjustTimerTime(long adjustDuration) {
+        Log.d(TAG, "Adjusting timer time by " + adjustDuration + " seconds");
+        long adjustMillis = adjustDuration * 1000;
+        durationMillis += adjustMillis;
+        remainingMillis += adjustMillis;
+        sendTimerUpdateBroadcast(remainingMillis);
+    }
+
+    // Pause Timer
     private void pauseTimer() {
         if (isTimerRunning && !isPaused) {
             Log.d(TAG, "Pausing Timer");
@@ -154,7 +224,7 @@ public class TimerService extends Service {
             remainingMillis = durationMillis - (SystemClock.elapsedRealtime() - startTimeMillis);
             if (remainingMillis < 0) remainingMillis = 0;
             updateNotification(formatMillis(remainingMillis));
-            showTempStopNotification(this, "Timer is paused");
+            showTempNotification(this, "The session has been paused");
             sendTimerUpdateBroadcast(remainingMillis);
             Log.d(TAG, "Paused. Remaining millis: " + remainingMillis);
         } else {
@@ -162,6 +232,7 @@ public class TimerService extends Service {
         }
     }
 
+    // Resume Timer
     private void resumeTimer() {
         if (isTimerRunning && isPaused) {
             if (remainingMillis <= 0) {
@@ -179,20 +250,22 @@ public class TimerService extends Service {
             Log.w(TAG, "Timer not running or not paused");
     }
 
+    // Stop Timer
     private void stopTimer() {
         Log.d(TAG, "Stopping timer and service");
         if (isTimerRunning) {
-            showTempStopNotification(this, "Timer is stopped");
+            showTempNotification(this, "Session has ended");
             Intent intent = new Intent(BROADCAST_ACTION_TIMER_STOP);
             LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-        } else showTempStopNotification(this, "Timer is already stopped");
+        }
 
         initTimerState();
-
         stopForeground(true);
         stopSelf();
     }
 
+    // Start Periodic Updates
+    // Using Runnable Object to implements timer
     private void startPeriodicUpdates() {
         if (handler != null && timerRunnable != null)
             handler.removeCallbacks(timerRunnable);
@@ -219,130 +292,117 @@ public class TimerService extends Service {
         handler.post(timerRunnable);
     }
 
+    // Send Remaining time to Broadcast Receiver
     private void sendTimerUpdateBroadcast(long remainingMillis) {
         Intent intent = new Intent(BROADCAST_ACTION_TIMER_UPDATE);
         if (remainingMillis < 0) remainingMillis = 0;
-        intent.putExtra(BROADCAST_EXTRA_REMAINING, remainingMillis);
+        intent.putExtra(BROADCAST_EXTRA_REMAINING_TIME, remainingMillis);
 
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
         Log.d(TAG, "Send Broadcast");
     }
 
-    private Notification createNotification(String contentText) {
+    // Create Notification Channel
+    private void createNotificationChannel() {
+        String name = "Timer Channel";
+        String description = "Timer Service Channel";
+        int importance = NotificationManager.IMPORTANCE_LOW;
 
+        NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+        channel.setDescription(description);
+
+        NotificationManager notificationManager = ContextCompat.getSystemService(getApplicationContext(), NotificationManager.class);
+        if (notificationManager != null) {
+            notificationManager.createNotificationChannel(channel);
+        }
+        createTempNotificationChannel(this);
+    }
+
+    // Create Temporary Notification Channel
+    // Normal Channel & Muted Channel
+    private void createTempNotificationChannel(Context context) {
+        NotificationManager notificationManager = ContextCompat.getSystemService(context, NotificationManager.class);
+
+        // Normal Channel
+        String nameNormal = "Timer State Change Alerts";
+        String descriptionNormal = "Timer State Change Channel";
+        int importance = NotificationManager.IMPORTANCE_HIGH;
+
+        NotificationChannel channelNormal = new NotificationChannel(TEMP_CHANNEL_ID, nameNormal, importance);
+        AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
+                .build();
+        channelNormal.setSound(Settings.System.DEFAULT_NOTIFICATION_URI, audioAttributes);
+        channelNormal.enableVibration(true);
+        channelNormal.setVibrationPattern(new long[]{0, 250, 100, 250});
+        channelNormal.setDescription(descriptionNormal);
+
+        if (notificationManager != null) {
+            notificationManager.createNotificationChannel(channelNormal);
+        }
+
+        // Muted Channel
+        String nameMuted = "Timer State Change Alerts (Muted)";
+        String descriptionMuted = "Timer State Change Channel (Muted)";
+
+        NotificationChannel channelMuted = new NotificationChannel(TEMP_MUTE_CHANNEL_ID, nameMuted, importance);
+        channelMuted.setSound(null, null);
+        channelMuted.enableVibration(false);
+        channelMuted.setDescription(descriptionMuted);
+
+        if (notificationManager != null) {
+            notificationManager.createNotificationChannel(channelMuted);
+        }
+    }
+
+    // Create Notification for foreground service
+    private Notification createNotification(String timeText) {
         Intent intent = new Intent(this, MainActivity.class);
         int intentFlags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                this, 0, intent,
-                intentFlags
-        );
-
-        Intent pauseResumeIntent = new Intent(this, TimerService.class);
-        String pauseResumeAction = isPaused ? ACTION_RESUME : ACTION_PAUSE;
-        String pauseResumeTitle = isPaused ? "Resume" : "Pause";
-        int pauseResumeIcon = isPaused ? R.drawable.outline_pause_black_24 : R.drawable.outline_play_arrow_black_24;
-        pauseResumeIntent.setAction(pauseResumeAction);
-        PendingIntent pauseResumePendingIntent = PendingIntent.getService(this, 1, pauseResumeIntent, intentFlags);
-
-        Intent stopIntent = new Intent(this, TimerService.class);
-        stopIntent.setAction(ACTION_STOP);
-        PendingIntent stopPendingIntent = PendingIntent.getService(this, 2, stopIntent, intentFlags);
-
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, intentFlags) ;
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle(isPaused ? "Timer Paused" : "Timer Running")
-                .setContentText(contentText)
-                .setSmallIcon(R.drawable.outline_timer_black_24)
+                .setContentTitle("Timer Session")
+                .setContentText(timeText)
+                .setSmallIcon(R.drawable.outline_hourglass_top_black_24)
                 .setContentIntent(pendingIntent)
                 .setOngoing(true)
-                .setOnlyAlertOnce(true);
-
-        builder.addAction(pauseResumeIcon, pauseResumeTitle, pauseResumePendingIntent);
-        builder.addAction(R.drawable.outline_stop_black_24, "Stop", stopPendingIntent);
+                .setOnlyAlertOnce(true)
+                .setContentIntent(pendingIntent);
 
         return builder.build();
     }
 
-
-    private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            String name = "Timer Channel";
-            String description = "Timer Alarm Channel";
-            int importance = NotificationManager.IMPORTANCE_LOW;
-
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
-            channel.setDescription(description);
-
-            NotificationManager notificationManager = ContextCompat.getSystemService(getApplicationContext(), NotificationManager.class);
-            if (notificationManager != null) {
-                notificationManager.createNotificationChannel(channel);
-            }
-            createFinishedNotificationChannel(this);
-        }
-    }
-
-    private void createFinishedNotificationChannel(Context context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            CharSequence name = "Timer Finished/Stopped Alerts";
-            String description = "TImer finished or Stopped Alerts";
-            int importance = NotificationManager.IMPORTANCE_HIGH;
-
-            NotificationChannel channel = new NotificationChannel(FINISHED_CHANNEL_ID, name, importance);
-            channel.setDescription(description);
-            channel.setSound(Settings.System.DEFAULT_NOTIFICATION_URI,
-                    new AudioAttributes.Builder()
-                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                            .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
-                            .build());
-            channel.enableVibration(true);
-            channel.setVibrationPattern(new long[]{0, 250, 100, 250});
-
-            NotificationManager notificationManager = ContextCompat.getSystemService(context, NotificationManager.class);
-            if (notificationManager != null) {
-                notificationManager.createNotificationChannel(channel);
-            }
-        }
-    }
-
-    private void showTempStopNotification(Context context, String message) {
-        createFinishedNotificationChannel(context);
+    // Show Temporary Notification
+    private void showTempNotification(Context context, String message) {
+        createTempNotificationChannel(context);
 
         Intent intent = new Intent(context, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 3, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, FINISHED_CHANNEL_ID)
-                .setSmallIcon(R.drawable.outline_timer_black_24)
-                .setContentTitle("Timer")
+        String channelId = TEMP_CHANNEL_ID;
+        if (isMuted) channelId = TEMP_MUTE_CHANNEL_ID;
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, channelId)
+                .setSmallIcon(R.drawable.outline_hourglass_top_black_24)
+                .setContentTitle("Timer Session")
                 .setContentText(message)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent);
 
-        if (isMuted) {
-            Log.d("TimerService", "Notification Sound & Vibrate Off");
-            builder
-                    .setSound(null)
-                    .setVibrate(null);
-        } else {
-            Log.d("TimerService", "Notification Sound & Vibrate On");
-            builder
-                    .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
-                    .setVibrate(new long[]{0, 250, 100, 250});
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            builder.setTimeoutAfter(2000);
-        }
-
+        builder.setTimeoutAfter(2500);
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
-        notificationManager.notify(FINISHED_NOTIFICATION_ID, builder.build());
+        notificationManager.notify(TEMP_NOTIFICATION_ID, builder.build());
     }
 
-    private void updateNotification(String newText) {
-        Notification notification = createNotification(newText);
+    // Update Notification
+    private void updateNotification(String timeText) {
+        Notification notification = createNotification(timeText);
         NotificationManagerCompat.from(this).notify(1, notification);
     }
 
+    // Format Remaining Time
     private static String formatMillis(long millis) {
         long seconds = millis / 1000;
         long minutes = seconds / 60;
@@ -358,6 +418,7 @@ public class TimerService extends Service {
 
     @Override
     public void onDestroy() {
+        saveStateToPrefs();
         super.onDestroy();
         if (handler != null && timerRunnable != null)
             handler.removeCallbacks(timerRunnable);

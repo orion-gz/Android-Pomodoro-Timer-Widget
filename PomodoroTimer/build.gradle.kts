@@ -37,7 +37,6 @@ android {
 }
 
 dependencies {
-
     implementation(libs.appcompat)
     implementation(libs.material)
     testImplementation(libs.junit)
@@ -56,13 +55,13 @@ publishing {
             }
 
             groupId = project.group.toString()
-            artifactId = "Pomodoro-Timer-Widget"
+            artifactId = "Android-Pomodoro-Timer-Widget"
             version = project.version.toString()
 
             pom {
                 name.set("PomodoroTimer")
                 description.set("This is an android Pomodoro Timer custom view widget with java")
-                url.set("https://github.com/orion-gz/Pomodoro-Timer-Widget")
+                url.set("https://github.com/orion-gz/Android-Pomodoro-Timer-Widget")
 
                 developers {
                     developer {
@@ -74,8 +73,8 @@ publishing {
 
                 scm {
                     connection.set("scm:git:git://github.com/orion-gz/Pomodoro-Timer-Widget.git")
-                    developerConnection.set("scm:git:ssh://github.com/orion-gz/Pomodoro-Timer-Widget.git")
-                    url.set("https://github.com/orion-gz/Pomodoro-Timer-Widget/")
+                    developerConnection.set("scm:git:ssh://github.com/orion-gz/Android-Pomodoro-Timer-Widget.git")
+                    url.set("https://github.com/orion-gz/Android-Pomodoro-Timer-Widget/")
                 }
             }
         }

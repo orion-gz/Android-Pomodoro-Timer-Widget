@@ -8,7 +8,7 @@ android {
 
     defaultConfig {
         applicationId = "orion.app.timer"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -32,7 +32,7 @@ android {
 }
 
 dependencies {
-    implementation(files("../PomodoroTimer-debug.aar"))
+    implementation(files("../PomodoroTimer.aar"))
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)

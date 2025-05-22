@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Timer</string>
+
+    <string name="btn_session_start">Start Session</string>
 </resources>
